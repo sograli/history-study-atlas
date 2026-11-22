@@ -24,11 +24,11 @@ const events=[
  {year:1991,title:'苏联解体',place:'俄罗斯 · 莫斯科',lon:37.6,lat:55.8,importance:3,scope:5,tag:'冷战结束',summary:'苏联解体标志着两极格局瓦解，世界格局朝多极化方向发展。',impacts:[{place:'欧亚大陆',lon:65,lat:48,year:1991,text:'原苏联加盟共和国相继独立，欧亚政治地图发生变化。'},{place:'欧洲',lon:15,lat:50,year:1991,text:'冷战结束后，欧洲及全球国际关系进入调整期。'}]}
 ].concat(moreEvents,expandedEvents,ancientEvents,curriculumEvents,topicEvents,additionalEvents).sort((a,b)=>a.year-b.year);
 const $=s=>document.querySelector(s), ns='http://www.w3.org/2000/svg';
-const slider=$('#yearSlider'),markers=$('#markers'),paths=$('#paths');let year=1919,selected=events.find(e=>e.title==='五四运动'),scale=1,timer=null,windowYears=10;
+const slider=$('#yearSlider'),markers=$('#markers'),paths=$('#paths');let year=1919,selected=events.find(e=>e.title==='五四运动'),scale=1,timer=null,windowYears=10,popupOpen=false;
 const yearText=y=>y<0?'公元前 '+Math.abs(y)+' 年':y===0?'公元纪年前后':y+' 年';const pos=(lon,lat)=>[(lon+180)/360*1000,(90-lat)/180*500];
 function svg(name,attrs={},parent){const el=document.createElementNS(ns,name);Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));if(parent)parent.appendChild(el);return el}
-function selectEvent(e){selected=e;year=e.year;slider.value=year;render()}
-function showAtYear(y){year=Number(y);if(!selected?.isTrend || year<selected.start || year>selected.end)selected=null;render()}
+function selectEvent(e){selected=e;year=e.year;slider.value=year;popupOpen=true;ensureSelectedVisible();render()}
+function showAtYear(y){year=Number(y);if(!selected?.isTrend || year<selected.start || year>selected.end){selected=null;popupOpen=false}render()}
 function render(){
  window.updateHistoricalMap?.(year);window.updateCivilizations?.(year);$('#mapYear').textContent=year<0?'前 '+Math.abs(year):year;$('#currentYear').textContent=yearText(year);$('#windowLabel').textContent=yearText(year)+' · '+(windowYears===0?'同一年':'前后 '+windowYears+' 年');
  const nearby=events.filter(e=>Math.abs(e.year-year)<=windowYears);if(selected?.isTrend)nearby.unshift(selected);const visibleImpacts=selected?(selected.isTrend?selected.impacts.filter(i=>i.from<=year):selected.impacts):[];
@@ -39,6 +39,7 @@ function render(){
  if(nearby.length){const section=document.createElement('div');section.innerHTML=`<div class="divider"></div><div class="nearby-title"><span>这一时期的事件</span><span>${nearby.filter(e=>!e.isTrend).length} 个事件</span></div><div class="event-list"></div>`;nearby.filter(e=>!e.isTrend).forEach(e=>{const b=document.createElement('button');b.className='event-choice'+(e===selected?' selected':'');b.innerHTML=`<span>${yearText(e.year)}</span> ${e.title}`;b.onclick=()=>selectEvent(e);section.querySelector('.event-list').appendChild(b)});d.appendChild(section)}
  document.querySelectorAll('.topic-node').forEach(b=>{const active=selected?.isTrend&&selected.title===b.dataset.title;const inPeriod=year>=Number(b.dataset.start)&&year<=Number(b.dataset.end);b.classList.toggle('selected',active);b.classList.toggle('in-period',inPeriod);b.setAttribute('aria-pressed',String(active));b.querySelector('.period-state').textContent=inPeriod?'当前年代 · 范围内':'观察阶段'});
  document.querySelectorAll('[data-era]').forEach(b=>b.classList.toggle('selected',Math.abs(year-Number(b.dataset.era))<30));
+ syncEventPopup();
 }
 // Every displayed location is anchored to its own recorded longitude and latitude.
 // On small screens or at low zoom, nearby points share an interactive cluster;
@@ -63,11 +64,11 @@ function renderMapMarkers(){
   const radius=13+chosen.scope*3;svg('circle',{cx:x,cy:y,r:radius,fill:'url(#halo)',class:'pulse'},g);svg('circle',{cx:x,cy:y,r:8,fill:'transparent'},g);svg('circle',{cx:x,cy:y,r:3+chosen.scope/2,fill:chosen.importance===3?'#e7a343':chosen.importance===2?'#efc36e':'#f7df9d',class:'core',filter:'url(#glow)'},g);
   if(count>1){const badge=svg('text',{x:x+9,y:y-8,class:'cluster-count'},g);badge.textContent=count}
   if(group.items.includes(selected)){const t=svg('text',{x:x+12,y:y+15,class:'marker-label'},g);t.textContent=selected.title}
-  function choose(){if(count>1){openMarkerCluster(group.items);return}if(chosen.isTrend){selected=chosen;render()}else selectEvent(chosen)}
+  function choose(){if(count>1){openMarkerCluster(group.items);return}if(chosen.isTrend){selected=chosen;popupOpen=true;ensureSelectedVisible();render()}else selectEvent(chosen)}
   g.addEventListener('click',choose);g.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();choose()}});
  });
 }
-function openMarkerCluster(items){const list=$('#markerClusterList');list.replaceChildren();items.slice().sort((a,b)=>a.year-b.year).forEach(event=>{const b=document.createElement('button');b.className='cluster-event';const date=document.createElement('time');date.textContent=event.isTrend?event.period:yearText(event.year);const title=document.createElement('strong');title.textContent=event.title;const place=document.createElement('span');place.textContent=event.place;b.append(date,title,place);b.onclick=()=>{$('#markerClusterDialog').close();if(event.isTrend){selected=event;render()}else selectEvent(event)};list.appendChild(b)});$('#markerClusterDialog').showModal()}
+function openMarkerCluster(items){const list=$('#markerClusterList');list.replaceChildren();items.slice().sort((a,b)=>a.year-b.year).forEach(event=>{const b=document.createElement('button');b.className='cluster-event';const date=document.createElement('time');date.textContent=event.isTrend?event.period:yearText(event.year);const title=document.createElement('strong');title.textContent=event.title;const place=document.createElement('span');place.textContent=event.place;b.append(date,title,place);b.onclick=()=>{$('#markerClusterDialog').close();if(event.isTrend){selected=event;popupOpen=true;ensureSelectedVisible();render()}else selectEvent(event)};list.appendChild(b)});$('#markerClusterDialog').showModal()}
 $('.cluster-close').onclick=()=>$('#markerClusterDialog').close();
 $('#totalCount').textContent=events.length;events.forEach(e=>{let dot=document.createElement('i');dot.style.left=((e.year+3200)/5220*100)+'%';$('#timelineDots').appendChild(dot)});
 $('#windowSelect').addEventListener('change',e=>{windowYears=Number(e.target.value);render()});slider.addEventListener('input',e=>showAtYear(e.target.value));document.querySelectorAll('[data-era]').forEach(b=>b.onclick=()=>{let e=events.reduce((a,c)=>Math.abs(c.year-Number(b.dataset.era))<Math.abs(a.year-Number(b.dataset.era))?c:a);selectEvent(e)});
@@ -75,7 +76,31 @@ function step(dir){let idx;if(selected&&!selected.isTrend)idx=events.indexOf(sel
 $('#prev').onclick=()=>step(-1);$('#next').onclick=()=>step(1);$('#play').onclick=()=>{if(timer){clearInterval(timer);timer=null;$('#play').textContent='▶';$('#play').setAttribute('aria-label','播放时间轴')}else{step(1);timer=setInterval(()=>step(1),2600);$('#play').textContent='Ⅱ';$('#play').setAttribute('aria-label','暂停时间轴')}};
 let panX=0,panY=0,drag=null,justDragged=false;
 const mapContent=$('#mapContent'),viewport=$('.map-viewport');
-function updateMap(){mapContent.style.transform=`translate(${panX}px, ${panY}px) scale(${scale})`}
+// The detail card is a non-modal overlay; its anchor uses the same SVG transform as the map.
+const eventPopup=$('#eventPopup');let popupFrame=0,popupFollowUntil=0;
+function selectedScreenPoint(){if(!selected)return null;const matrix=$('#map').getScreenCTM();if(!matrix)return null;const [x,y]=pos(selected.lon,selected.lat);return {x:matrix.a*x+matrix.c*y+matrix.e,y:matrix.b*x+matrix.d*y+matrix.f}}
+function ensureSelectedVisible(){const p=selectedScreenPoint();if(!p)return;const r=viewport.getBoundingClientRect(),pad=26;if(p.x<r.left+pad||p.x>r.right-pad||p.y<r.top+pad||p.y>r.bottom-pad){panX+=r.left+r.width/2-p.x;panY+=r.top+r.height/2-p.y;clampPan();updateMap()}}
+function syncEventPopup(){eventPopup.hidden=!(popupOpen&&selected);if(!eventPopup.hidden){eventPopup.scrollTop=0;positionEventPopup();followMapTransform()}}
+function positionEventPopup(){
+ if(!popupOpen||!selected){eventPopup.hidden=true;return}eventPopup.hidden=false;
+ const point=selectedScreenPoint(),r=viewport.getBoundingClientRect();if(!point||!r.width||!r.height)return;
+ const px=point.x-r.left,py=point.y-r.top,pad=10,gap=15;
+ if(px<0||py<0||px>r.width||py>r.height){eventPopup.style.visibility='hidden';return}
+ eventPopup.style.visibility='visible';const leftSpace=px-gap-pad,rightSpace=r.width-px-gap-pad;
+ let x,y,side;
+ if(Math.max(leftSpace,rightSpace)>=220){
+  side=rightSpace>=leftSpace?'right':'left';const space=side==='right'?rightSpace:leftSpace;eventPopup.style.width=Math.max(0,Math.min(310,space))+'px';eventPopup.style.maxHeight=Math.max(90,Math.min(350,r.height-2*pad))+'px';
+  const box=eventPopup.getBoundingClientRect();x=side==='right'?px+gap:px-gap-box.width;y=Math.max(pad,Math.min(r.height-pad-box.height,py-58));eventPopup.style.setProperty('--pointer-y',Math.max(12,Math.min(box.height-12,py-y))+'px');
+ }else{
+  const above=py-gap-pad,below=r.height-py-gap-pad;side=below>=above?'below':'above';const space=side==='below'?below:above;eventPopup.style.width=Math.max(0,Math.min(290,r.width-2*pad))+'px';eventPopup.style.maxHeight=Math.max(60,Math.min(350,space))+'px';
+  const box=eventPopup.getBoundingClientRect();x=Math.max(pad,Math.min(r.width-pad-box.width,px-box.width/2));y=side==='below'?py+gap:py-gap-box.height;eventPopup.style.setProperty('--pointer-x',Math.max(12,Math.min(box.width-12,px-x))+'px');
+ }
+ eventPopup.dataset.placement=side;eventPopup.style.left=Math.round(x)+'px';eventPopup.style.top=Math.round(y)+'px';
+}
+function followMapTransform(){popupFollowUntil=performance.now()+400;if(!popupFrame){const tick=()=>{positionEventPopup();if(performance.now()<popupFollowUntil)popupFrame=requestAnimationFrame(tick);else popupFrame=0};popupFrame=requestAnimationFrame(tick)}}
+$('#closeEventDetail').onclick=()=>{popupOpen=false;eventPopup.hidden=true};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&popupOpen&&!document.querySelector('dialog[open]')){popupOpen=false;eventPopup.hidden=true}});
+function updateMap(){mapContent.style.transform=`translate(${panX}px, ${panY}px) scale(${scale})`;followMapTransform()}
 function clampPan(){const rect=viewport.getBoundingClientRect();const limitX=rect.width*(.34+(scale-1)*.5),limitY=rect.height*(.34+(scale-1)*.5);panX=Math.max(-limitX,Math.min(limitX,panX));panY=Math.max(-limitY,Math.min(limitY,panY))}
 function zoom(n){
  const next=Math.max(1,Math.min(8,scale+n));if(next===scale)return;
@@ -91,7 +116,7 @@ function finishDrag(e){if(!drag||e.pointerId!==drag.id)return;justDragged=drag.m
 mapContent.addEventListener('pointerup',finishDrag);mapContent.addEventListener('pointercancel',finishDrag);
 mapContent.addEventListener('click',e=>{if(justDragged){e.stopPropagation();e.preventDefault();justDragged=false}},true);
 mapContent.addEventListener('keydown',e=>{if(e.target!==mapContent)return;let k={ArrowLeft:[-30,0],ArrowRight:[30,0],ArrowUp:[0,-30],ArrowDown:[0,30]}[e.key];if(k){e.preventDefault();panX+=k[0];panY+=k[1];clampPan();updateMap()}});
-window.addEventListener('resize',()=>{clampPan();updateMap();renderMapMarkers()});
+window.addEventListener('resize',()=>{clampPan();updateMap();renderMapMarkers();positionEventPopup()});
 $('#help').onclick=()=>$('#helpDialog').showModal();$('.close').onclick=()=>$('#helpDialog').close();function updateCatalog(){const q=$('#catalogSearch').value.trim().toLowerCase();const found=events.filter(e=>[e.title,e.place,e.tag,e.summary,String(e.year)].some(v=>v.toLowerCase().includes(q)));$('#catalogCount').textContent=`找到 ${found.length} 个事件`;const list=$('#catalogList');list.replaceChildren();found.forEach(e=>{const b=document.createElement('button');b.className='catalog-event';b.innerHTML=`<time>${yearText(e.year)}</time><strong>${e.title}</strong><span>${e.place} · ${e.tag}</span>`;b.onclick=()=>{selectEvent(e);$('#catalogDialog').close();$('.map-panel').scrollIntoView({behavior:'smooth',block:'start'})};list.appendChild(b)})}
 $('#navList').onclick=$('#catalogTop').onclick=()=>{updateCatalog();$('#catalogDialog').showModal()};$('.catalog-close').onclick=()=>$('#catalogDialog').close();$('#catalogSearch').addEventListener('input',updateCatalog);
 $('#yearGo').onclick=()=>{const input=$('#yearInput');if(!input.value||!input.checkValidity()){input.reportValidity();return}const y=Number(input.value);slider.value=y;showAtYear(y)};$('#yearInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#yearGo').click()});$('#navExplore').onclick=()=>$('.map-panel').scrollIntoView({behavior:'smooth'});initLearning();render();
@@ -102,10 +127,10 @@ function initLearning(){
   const track=document.getElementById(kind+'Track');
   trends.filter(item=>item.kind===kind).sort((a,b)=>a.start-b.start).forEach(item=>{
    const button=document.createElement('button');button.className='topic-node';button.dataset.title=item.title;button.dataset.start=item.start;button.dataset.end=item.end;button.setAttribute('aria-pressed','false');
-   const date=document.createElement('time');date.textContent=item.period;const label=document.createElement('strong');label.textContent=item.title;const state=document.createElement('span');state.className='period-state';button.append(date,label,state);button.onclick=()=>{selected=item;if(year<item.start||year>item.end){year=item.year;slider.value=year}render();$('.map-panel').scrollIntoView({behavior:'smooth',block:'start'})};track.appendChild(button);
+   const date=document.createElement('time');date.textContent=item.period;const label=document.createElement('strong');label.textContent=item.title;const state=document.createElement('span');state.className='period-state';button.append(date,label,state);button.onclick=()=>{selected=item;if(year<item.start||year>item.end){year=item.year;slider.value=year}popupOpen=true;ensureSelectedVisible();render();$('.map-panel').scrollIntoView({behavior:'smooth',block:'start'})};track.appendChild(button);
   });
  }
  const select=$('#courseBook');courseBooks.forEach((book,index)=>{const option=document.createElement('option');option.value=index;option.textContent=book.name;select.append(option)});
- function renderCourses(){const book=courseBooks[Number(select.value)],list=$('#courseList');list.replaceChildren();let linked=0;book.lessons.forEach(([title,eventTitle],index)=>{const event=events.find(e=>e.title===eventTitle),row=document.createElement('div');row.className='course-row';const label=document.createElement('div');const number=document.createElement('span');number.textContent=`第 ${index+1} 课`;const heading=document.createElement('strong');heading.textContent=title;label.append(number,heading);row.append(label);if(event){linked++;const button=document.createElement('button');button.textContent='查看：'+event.title;button.onclick=()=>showLearningEvent(event,$('#courseDialog'));row.append(button)}else{const pending=document.createElement('span');pending.className='course-pending';pending.textContent='待补充关联事件';row.append(pending)}(courseTrendLinks[title]||[]).forEach(name=>{const item=trends.find(t=>t.title===name);if(item){const b=document.createElement('button');b.className='course-trend-link';b.textContent='专题：'+name;b.onclick=()=>{ $('#courseDialog').close();selected=item;if(year<item.start||year>item.end){year=item.year;slider.value=year}render();$('.map-panel').scrollIntoView({behavior:'smooth',block:'start'})};row.append(b)}});list.append(row)});$('#courseCoverage').textContent=`${book.lessons.length} 课 · ${linked} 课有代表性事件 · ${book.lessons.length-linked} 课待补充`;}
+ function renderCourses(){const book=courseBooks[Number(select.value)],list=$('#courseList');list.replaceChildren();let linked=0;book.lessons.forEach(([title,eventTitle],index)=>{const event=events.find(e=>e.title===eventTitle),row=document.createElement('div');row.className='course-row';const label=document.createElement('div');const number=document.createElement('span');number.textContent=`第 ${index+1} 课`;const heading=document.createElement('strong');heading.textContent=title;label.append(number,heading);row.append(label);if(event){linked++;const button=document.createElement('button');button.textContent='查看：'+event.title;button.onclick=()=>showLearningEvent(event,$('#courseDialog'));row.append(button)}else{const pending=document.createElement('span');pending.className='course-pending';pending.textContent='待补充关联事件';row.append(pending)}(courseTrendLinks[title]||[]).forEach(name=>{const item=trends.find(t=>t.title===name);if(item){const b=document.createElement('button');b.className='course-trend-link';b.textContent='专题：'+name;b.onclick=()=>{ $('#courseDialog').close();selected=item;if(year<item.start||year>item.end){year=item.year;slider.value=year}popupOpen=true;ensureSelectedVisible();render();$('.map-panel').scrollIntoView({behavior:'smooth',block:'start'})};row.append(b)}});list.append(row)});$('#courseCoverage').textContent=`${book.lessons.length} 课 · ${linked} 课有代表性事件 · ${book.lessons.length-linked} 课待补充`;}
  select.addEventListener('change',renderCourses);$('#openCourses').onclick=()=>{renderCourses();$('#courseDialog').showModal()};$('.course-close').onclick=()=>$('#courseDialog').close();
 }

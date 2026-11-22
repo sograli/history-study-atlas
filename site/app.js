@@ -47,25 +47,26 @@ function renderMapMarkers(){
  const nearby=events.filter(e=>Math.abs(e.year-year)<=windowYears);if(selected?.isTrend)nearby.unshift(selected);
  const visibleImpacts=selected?(selected.isTrend?selected.impacts.filter(i=>i.from<=year):selected.impacts):[];
  markers.replaceChildren();paths.replaceChildren();
+ const matrix=document.querySelector('#map').getScreenCTM();const unit=matrix?Math.max(.01,Math.hypot(matrix.a,matrix.b)):1;const mobile=window.matchMedia('(max-width:720px)').matches;
  if(selected){const [x,y]=pos(selected.lon,selected.lat);visibleImpacts.forEach(impact=>{
   const [tx,ty]=pos(impact.lon,impact.lat);const dx=tx-x,dy=ty-y;
   const d=Math.hypot(dx,dy)<0.01?`M ${x} ${y} C ${x+20} ${y-25}, ${x-20} ${y-25}, ${tx} ${ty}`:`M ${x} ${y} Q ${(x+tx)/2-dy*.12} ${(y+ty)/2+dx*.12} ${tx} ${ty}`;
-  svg('path',{d,class:'impact-line'},paths);svg('circle',{cx:tx,cy:ty,r:22,fill:'url(#halo)',class:'pulse'},paths);svg('circle',{cx:tx,cy:ty,r:4,fill:'#f3d58a',filter:'url(#glow)',class:'impact-core'},paths);
+  svg('path',{d,class:'impact-line'},paths);svg('circle',{cx:tx,cy:ty,r:Math.max(22,mobile?16/unit:0),fill:'url(#halo)',class:'pulse'},paths);svg('circle',{cx:tx,cy:ty,r:Math.max(4,mobile?4/unit:0),fill:'#f3d58a',filter:'url(#glow)',class:'impact-core'},paths);
   const label=svg('text',{x:tx+8,y:ty-8,class:'impact-label'},paths);label.textContent=impact.place+' · '+(impact.when||yearText(impact.year));
  })}
- const matrix=document.querySelector('#map').getScreenCTM();
  const toScreen=(x,y)=>matrix?{x:matrix.a*x+matrix.c*y+matrix.e,y:matrix.b*x+matrix.d*y+matrix.f}:{x,y};
- const groups=[];nearby.forEach(event=>{const [x,y]=pos(event.lon,event.lat),point=toScreen(x,y);let group=groups.find(g=>Math.hypot(point.x-g.point.x,point.y-g.point.y)<20);if(group)group.items.push(event);else groups.push({items:[event],point})});
+ const groups=[];nearby.forEach(event=>{const [x,y]=pos(event.lon,event.lat),point=toScreen(x,y);let group=groups.find(g=>Math.hypot(point.x-g.point.x,point.y-g.point.y)<(mobile?44:20));if(group)group.items.push(event);else groups.push({items:[event],point})});
  groups.sort((a,b)=>Number(a.items.includes(selected))-Number(b.items.includes(selected)));
  groups.forEach(group=>{const chosen=group.items.includes(selected)?selected:group.items[0], [x,y]=pos(chosen.lon,chosen.lat),count=group.items.length;
   const label=count>1?`${count} 个地点接近的事件，点击选择`:`${chosen.isTrend?chosen.period:yearText(chosen.year)} ${chosen.title}`;
   const g=svg('g',{class:'marker'+(group.items.includes(selected)?' selected':''),tabindex:'0',role:'button','aria-label':label,'data-event-title':chosen.title,'data-lon':chosen.lon,'data-lat':chosen.lat,'data-count':count},markers);
-  const radius=13+chosen.scope*3;svg('circle',{cx:x,cy:y,r:radius,fill:'url(#halo)',class:'pulse'},g);svg('circle',{cx:x,cy:y,r:8,fill:'transparent'},g);svg('circle',{cx:x,cy:y,r:3+chosen.scope/2,fill:chosen.importance===3?'#e7a343':chosen.importance===2?'#efc36e':'#f7df9d',class:'core',filter:'url(#glow)'},g);
-  if(count>1){const badge=svg('text',{x:x+9,y:y-8,class:'cluster-count'},g);badge.textContent=count}
+  const radius=Math.max(13+chosen.scope*3,mobile?(13+chosen.scope)/unit:0),hit=mobile?22/unit:8,core=Math.max(3+chosen.scope/2,mobile?4.5/unit:0);svg('circle',{cx:x,cy:y,r:radius,fill:'url(#halo)',class:'pulse'},g);svg('circle',{cx:x,cy:y,r:hit,fill:'transparent','pointer-events':'all',class:'marker-hit'},g);svg('circle',{cx:x,cy:y,r:core,fill:chosen.importance===3?'#e7a343':chosen.importance===2?'#efc36e':'#f7df9d',class:'core',filter:'url(#glow)'},g);
+  if(count>1){const offset=mobile?8/unit:9;const badge=svg('text',{x:x+offset,y:y-offset,class:'cluster-count',style:`font-size:${mobile?Math.max(10,11/unit):10}px`},g);badge.textContent=count}
   if(group.items.includes(selected)){const t=svg('text',{x:x+12,y:y+15,class:'marker-label'},g);t.textContent=selected.title}
   function choose(){if(count>1){openMarkerCluster(group.items);return}if(chosen.isTrend){selected=chosen;popupOpen=true;ensureSelectedVisible();render()}else selectEvent(chosen)}
   g.addEventListener('click',choose);g.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();choose()}});
  });
+ const view=viewport.getBoundingClientRect();const visible=groups.some(g=>{const e=g.items.includes(selected)?selected:g.items[0];const [x,y]=pos(e.lon,e.lat),p=toScreen(x,y);return p.x>=view.left&&p.x<=view.right&&p.y>=view.top&&p.y<=view.bottom});const status=$('#mapEmptyMessage'),reset=$('#returnMapView');status.hidden=nearby.length>0&&visible;reset.hidden=!nearby.length;if(!nearby.length)$('#mapEmptyText').textContent='这一时间范围暂未收录事件，可调整下方的时间范围。';else if(!visible)$('#mapEmptyText').textContent='事件地点在当前视野外。';
 }
 function openMarkerCluster(items){const list=$('#markerClusterList');list.replaceChildren();items.slice().sort((a,b)=>a.year-b.year).forEach(event=>{const b=document.createElement('button');b.className='cluster-event';const date=document.createElement('time');date.textContent=event.isTrend?event.period:yearText(event.year);const title=document.createElement('strong');title.textContent=event.title;const place=document.createElement('span');place.textContent=event.place;b.append(date,title,place);b.onclick=()=>{$('#markerClusterDialog').close();if(event.isTrend){selected=event;popupOpen=true;ensureSelectedVisible();render()}else selectEvent(event)};list.appendChild(b)});$('#markerClusterDialog').showModal()}
 $('.cluster-close').onclick=()=>$('#markerClusterDialog').close();
@@ -79,7 +80,7 @@ const mapContent=$('#mapContent'),viewport=$('.map-viewport');
 const eventPopup=$('#eventPopup');let popupFrame=0,popupFollowUntil=0,lastPopupItem=null;
 function selectedScreenPoint(){if(!selected)return null;const matrix=$('#map').getScreenCTM();if(!matrix)return null;const [x,y]=pos(selected.lon,selected.lat);return {x:matrix.a*x+matrix.c*y+matrix.e,y:matrix.b*x+matrix.d*y+matrix.f}}
 function ensureSelectedVisible(){const p=selectedScreenPoint();if(!p)return;const r=viewport.getBoundingClientRect(),pad=26;if(p.x<r.left+pad||p.x>r.right-pad||p.y<r.top+pad||p.y>r.bottom-pad){panX+=r.left+r.width/2-p.x;panY+=r.top+r.height/2-p.y;clampPan();updateMap()}}
-function syncEventPopup(){eventPopup.hidden=!(popupOpen&&selected);if(!eventPopup.hidden){if(lastPopupItem!==selected){eventPopup.classList.remove('expanded');$('#expandEventDetail').setAttribute('aria-expanded','false');$('#expandEventDetail').textContent='展开详情';lastPopupItem=selected}$('#eventMiniTitle').textContent=selected.title+' · '+(selected.isTrend?selected.period:yearText(selected.year));eventPopup.scrollTop=0;positionEventPopup();followMapTransform()}}
+function syncEventPopup(){$('#closeMapEvent').hidden=!(popupOpen&&selected);eventPopup.hidden=!(popupOpen&&selected);if(!eventPopup.hidden){if(lastPopupItem!==selected){eventPopup.classList.remove('expanded');$('#expandEventDetail').setAttribute('aria-expanded','false');$('#expandEventDetail').textContent='展开详情';lastPopupItem=selected}$('#eventMiniTitle').textContent=selected.title+' · '+(selected.isTrend?selected.period:yearText(selected.year));eventPopup.scrollTop=0;positionEventPopup();followMapTransform()}}
 function positionEventPopup(){
  if(!popupOpen||!selected){eventPopup.hidden=true;return}eventPopup.hidden=false;
  const point=selectedScreenPoint(),r=viewport.getBoundingClientRect();if(!point||!r.width||!r.height)return;
@@ -98,8 +99,9 @@ function positionEventPopup(){
 }
 function followMapTransform(){popupFollowUntil=performance.now()+400;if(!popupFrame){const tick=()=>{positionEventPopup();if(performance.now()<popupFollowUntil)popupFrame=requestAnimationFrame(tick);else popupFrame=0};popupFrame=requestAnimationFrame(tick)}}
 $('#expandEventDetail').onclick=()=>{const expanded=eventPopup.classList.toggle('expanded');$('#expandEventDetail').setAttribute('aria-expanded',String(expanded));$('#expandEventDetail').textContent=expanded?'收起详情':'展开详情';positionEventPopup()};
-$('#closeEventDetail').onclick=()=>{popupOpen=false;eventPopup.hidden=true};
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&popupOpen&&!document.querySelector('dialog[open]')){popupOpen=false;eventPopup.hidden=true}});
+function closeEventPopup(){popupOpen=false;eventPopup.hidden=true;$('#closeMapEvent').hidden=true}
+$('#closeEventDetail').onclick=closeEventPopup;$('#closeMapEvent').onclick=closeEventPopup;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&popupOpen&&!document.querySelector('dialog[open]')){closeEventPopup()}});
 function updateMap(){mapContent.style.transform=`translate(${panX}px, ${panY}px) scale(${scale})`;followMapTransform()}
 function clampPan(){const rect=viewport.getBoundingClientRect();const limitX=rect.width*(.34+(scale-1)*.5),limitY=rect.height*(.34+(scale-1)*.5);panX=Math.max(-limitX,Math.min(limitX,panX));panY=Math.max(-limitY,Math.min(limitY,panY))}
 function zoom(n){
@@ -108,11 +110,12 @@ function zoom(n){
  if(selected){const [x,y]=pos(selected.lon,selected.lat),unit=Math.min(mapContent.clientWidth/1000,mapContent.clientHeight/500);panX+=(scale-next)*(x-500)*unit;panY+=(scale-next)*(y-250)*unit}
  scale=next;clampPan();updateMap();renderMapMarkers();
 }
+$('#returnMapView').onclick=()=>$('#zoomReset').click();
 $('#zoomIn').onclick=()=>zoom(scale<2?.25:scale<4?.5:1);$('#zoomOut').onclick=()=>zoom(scale<=2?-.25:scale<=4?-.5:-1);$('#zoomReset').onclick=()=>{scale=1;panX=0;panY=0;updateMap();renderMapMarkers()};
 mapContent.addEventListener('transitionend',e=>{if(e.propertyName==='transform')renderMapMarkers()});
 mapContent.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,startX:panX,startY:panY,moved:false};justDragged=false;});
 mapContent.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;let dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>5&&!drag.moved){drag.moved=true;mapContent.setPointerCapture(e.pointerId)}if(drag.moved){panX=drag.startX+dx;panY=drag.startY+dy;clampPan();updateMap();mapContent.classList.add('dragging')}});
-function finishDrag(e){if(!drag||e.pointerId!==drag.id)return;justDragged=drag.moved;drag=null;mapContent.classList.remove('dragging')}
+function finishDrag(e){if(!drag||e.pointerId!==drag.id)return;justDragged=drag.moved;drag=null;mapContent.classList.remove('dragging');if(justDragged)renderMapMarkers()}
 mapContent.addEventListener('pointerup',finishDrag);mapContent.addEventListener('pointercancel',finishDrag);
 mapContent.addEventListener('click',e=>{if(justDragged){e.stopPropagation();e.preventDefault();justDragged=false}},true);
 mapContent.addEventListener('keydown',e=>{if(e.target!==mapContent)return;let k={ArrowLeft:[-30,0],ArrowRight:[30,0],ArrowUp:[0,-30],ArrowDown:[0,30]}[e.key];if(k){e.preventDefault();panX+=k[0];panY+=k[1];clampPan();updateMap()}});

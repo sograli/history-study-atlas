@@ -1,0 +1,45 @@
+// 各条记录是供高中历史学习的概略观察时段；文化和人群不会因记录结束而突然消失。
+const regionByName={
+ '苏美尔城邦文明':'西亚','古埃及文明':'非洲','印度河成熟哈拉帕文明':'南亚','早期安第斯文明':'美洲','中华文明':'东亚','巴比伦文明时期':'西亚','奥尔梅克文明':'美洲','古印度文明':'南亚','古希腊文明':'欧洲','古罗马文明':'欧洲','阿契美尼德波斯':'西亚','东罗马与拜占庭文明':'欧洲','玛雅文明古典期':'美洲','伊斯兰文明早期中心':'西亚','吴哥文明':'东南亚','西非马里帝国时期':'非洲','阿兹特克文明':'美洲','印加帝国时期':'美洲'
+};
+for(const c of civilizations)c.region=regionByName[c.name]||'其他';
+civilizations.push(...[
+ {name:'埃兰文明',start:-2700,end:-539,region:'西亚',lon:48.3,lat:32.2,detail:'以伊朗西南部为中心，与两河流域诸文明长期交往。此条目的区间用于观察埃兰相关历史，不意味着始终由同一政权统治。',source:'https://whc.unesco.org/en/list/113/'},
+ {name:'米诺斯文明',start:-2700,end:-1450,region:'欧洲',lon:25.2,lat:35.3,detail:'爱琴海克里特岛的青铜时代文明，以宫殿中心、海上交流和艺术成就著称。不同学者对分期边界的判断有所差异。',source:'https://whc.unesco.org/en/list/1733/'},
+ {name:'迈锡尼文明',start:-1600,end:-1100,region:'欧洲',lon:22.75,lat:37.73,detail:'以希腊大陆的迈锡尼等宫殿中心为代表，与地中海地区保持联系，对后来的希腊文化产生影响。',source:'https://whc.unesco.org/en/list/941/'},
+ {name:'赫梯文明',start:-1650,end:-1180,region:'西亚',lon:34.6,lat:40.0,detail:'以安纳托利亚的哈图沙为中心，形成强大的青铜时代王国，并与古埃及等政权交往和战争。',source:'https://whc.unesco.org/en/list/377/'},
+ {name:'腓尼基城邦文化',start:-1200,end:-300,region:'西亚',lon:35.5,lat:34,detail:'东地中海沿岸城邦凭借航海与贸易沟通多地，字母文字对地中海地区的书写传统产生重要影响。',source:'https://whc.unesco.org/en/list/299/'},
+ {name:'亚述文明',start:-1400,end:-609,region:'西亚',lon:43.2,lat:36.3,detail:'以两河流域北部为核心，经历不同时期；新亚述时期曾形成横跨西亚多个地区的帝国。',source:'https://whc.unesco.org/en/list/1130/'},
+ {name:'库施与努比亚文明',start:-800,end:350,region:'非洲',lon:32.5,lat:18.5,detail:'尼罗河中游的库施王国与古埃及有密切而复杂的联系，麦罗埃遗址反映当地王权和建筑传统。',source:'https://whc.unesco.org/en/list/1336/'},
+ {name:'古迦太基文化',start:-814,end:-146,region:'非洲',lon:10.3,lat:36.8,detail:'以北非迦太基为核心，是西地中海的重要海上贸易与政治中心，后来在布匿战争中被罗马征服。',source:'https://whc.unesco.org/en/list/37/'},
+ {name:'希腊化世界',start:-323,end:-30,region:'西亚',lon:29.9,lat:31.2,detail:'亚历山大帝国分裂后，希腊文化与埃及、西亚等地既有传统相互影响。条目以亚历山大港为观察点，不代表整个希腊化世界。',source:'https://www.metmuseum.org/toah/hd/haht/hd_haht.htm'},
+ {name:'帕提亚与丝路交流',start:-247,end:224,region:'西亚',lon:54,lat:36,detail:'安息帝国控制伊朗高原及周边重要地区，在连接欧亚的贸易与文化交流中发挥作用。',source:'https://www.metmuseum.org/pt/essays/the-parthian-empire-247-b-c-224-a-d'},
+ {name:'贵霜时期的中亚与南亚文化',start:30,end:375,region:'南亚',lon:71.5,lat:34.5,detail:'贵霜统治下的多地区交流促进了犍陀罗艺术以及佛教等文化传播，疆域和年代均为概略。',source:'https://whc.unesco.org/en/list/139/'},
+ {name:'萨珊波斯时期',start:224,end:651,region:'西亚',lon:53,lat:30,detail:'萨珊王朝统治伊朗高原及周边地区，是连接地中海、中亚和印度洋的重要力量。',source:'https://whc.unesco.org/en/list/1568/'},
+ {name:'阿克苏姆文明',start:100,end:800,region:'非洲',lon:38.7,lat:14.1,detail:'阿克苏姆王国位于非洲之角，参与红海与印度洋贸易，是非洲与西亚、地中海交流的重要节点。',source:'https://whc.unesco.org/en/list/15/'},
+ {name:'斯瓦希里海岸文化',start:1000,end:1600,region:'非洲',lon:39.5,lat:-8.9,detail:'东非沿海的斯瓦希里城镇通过印度洋贸易与阿拉伯、印度及中国等地区联系；此条目聚焦中世纪繁盛时期。',source:'https://whc.unesco.org/en/list/144/'},
+ {name:'大津巴布韦文化',start:1000,end:1500,region:'非洲',lon:30.9,lat:-20.3,detail:'南部非洲的大津巴布韦是地区政治与贸易中心，其石建筑反映本地的建筑传统与社会组织。',source:'https://whc.unesco.org/en/list/364/'},
+ {name:'桑海帝国时期',start:1400,end:1591,region:'非洲',lon:-0.1,lat:16.3,detail:'桑海在西非萨赫勒地区发展，廷巴克图、高等教育和跨撒哈拉贸易是理解其历史的重要线索。',source:'https://whc.unesco.org/en/list/1139/'},
+ {name:'贝宁王国文化',start:1200,end:1897,region:'非洲',lon:5.6,lat:6.3,detail:'西非贝宁王国发展了独特的王廷艺术与金属工艺。此处为历史王国的观察时段，并不表示当地文化此后消失。',source:'https://www.metmuseum.org/de/essays/benin-chronology'},
+ {name:'特奥蒂瓦坎文化',start:-100,end:800,region:'美洲',lon:-98.8,lat:19.7,detail:'墨西哥中部的重要古代城市，以太阳金字塔等大型建筑著称，影响遍及中美洲多个地区。',source:'https://whc.unesco.org/en/list/414/'},
+ {name:'萨波特克文化',start:-500,end:800,region:'美洲',lon:-96.8,lat:17,detail:'以瓦哈卡地区和阿尔班山为重要中心，在文字、历法、建筑等方面形成鲜明传统。此条聚焦阿尔班山兴盛时期。',source:'https://whc.unesco.org/en/list/415/'},
+ {name:'莫切文化',start:100,end:800,region:'美洲',lon:-79.0,lat:-8.1,detail:'秘鲁北部的莫切文化以陶器、金属工艺和大型礼仪建筑著称，与沿海河谷环境密切相关。',source:'https://www.metmuseum.org/toah/ht/05/sac.html'},
+ {name:'纳斯卡文化',start:100,end:700,region:'美洲',lon:-75.1,lat:-14.8,detail:'秘鲁南部的纳斯卡文化因地表巨画、陶器和礼仪中心等遗存而知名。',source:'https://whc.unesco.org/en/list/700/'},
+ {name:'蒂瓦纳库文化',start:500,end:1000,region:'美洲',lon:-68.7,lat:-16.6,detail:'的的喀喀湖附近的蒂瓦纳库是安第斯地区的重要礼仪和政治中心，石雕及建筑具有鲜明特色。',source:'https://whc.unesco.org/en/list/567/'},
+ {name:'瓦里文化',start:600,end:1000,region:'美洲',lon:-74.2,lat:-13.1,detail:'安第斯高地的瓦里政权及其艺术传统影响了周边地区，体现不同区域的交流和组织。',source:'https://www.metmuseum.org/essays/wari-imperial-art'},
+ {name:'卡霍基亚与密西西比文化',start:1050,end:1350,region:'美洲',lon:-90.1,lat:38.7,detail:'北美密西西比河流域的卡霍基亚拥有大型土丘与广泛交流网络；条目聚焦其主要兴盛时期。',source:'https://whc.unesco.org/en/list/198/'},
+ {name:'玛雅后古典期',start:901,end:1524,region:'美洲',lon:-89,lat:20,detail:'古典期之后，玛雅地区仍有城市与多个政治中心。1524 年仅是本图选取的观察节点；玛雅文化和社群延续至今。',source:'https://artistproject.metmuseum.org/toah/ht/08/cana.html'},
+ {name:'绳文文化晚期观察',start:-3200,end:-300,region:'东亚',lon:140.5,lat:41,detail:'日本列岛的绳文文化以陶器和定居遗存著称。它的历史早于本时间轴；这里只展示本时间轴覆盖到的后期时段。',source:'https://whc.unesco.org/en/list/1632/'},
+ {name:'百济文化',start:18,end:660,region:'东亚',lon:127,lat:36.3,detail:'朝鲜半岛百济时期留下城址、寺院和墓葬等遗存，并与东亚其他地区保持交流。',source:'https://whc.unesco.org/en/list/1477/'},
+ {name:'新罗文化',start:-57,end:935,region:'东亚',lon:129.2,lat:35.8,detail:'朝鲜半岛新罗时期的庆州留下宫殿、佛教雕塑与寺院遗存，反映东亚文化交流。',source:'https://whc.unesco.org/en/list/976/'},
+ {name:'日本古代奈良文化',start:710,end:794,region:'东亚',lon:135.8,lat:34.7,detail:'日本奈良时期的都城、寺院和佛教艺术反映了本土传统与东亚交流的共同影响。',source:'https://whc.unesco.org/en/list/870/'},
+ {name:'日本平安时期文化',start:794,end:1185,region:'东亚',lon:135.8,lat:35,detail:'平安京及其周边留下多种宫廷、宗教与文学文化遗产；条目聚焦平安时期。',source:'https://whc.unesco.org/en/list/688/'},
+ {name:'三佛齐与海上交流',start:700,end:1300,region:'东南亚',lon:104.8,lat:-2.9,detail:'以苏门答腊等地为重要节点的海上贸易网络连接印度洋与东亚；其政治和文化范围随时间变化。',source:'https://whc.unesco.org/en/list/592/'},
+ {name:'蒲甘时期文化',start:1044,end:1287,region:'东南亚',lon:94.86,lat:21.17,detail:'蒲甘时期缅甸伊洛瓦底江流域留下大量佛塔、寺庙及佛教艺术遗存。',source:'https://whc.unesco.org/en/list/1588/'},
+ {name:'大城王国文化',start:1350,end:1767,region:'东南亚',lon:100.57,lat:14.36,detail:'大城是东南亚重要的政治和贸易中心，水路网络使其与亚洲及欧洲多个地区相连。',source:'https://whc.unesco.org/en/list/576/'},
+ {name:'爪哇古代佛教文化',start:750,end:900,region:'东南亚',lon:110.2,lat:-7.6,detail:'中爪哇的婆罗浮屠等遗产体现当地佛教艺术和建筑传统，以及南亚与东南亚之间的交流。',source:'https://whc.unesco.org/en/list/592/'},
+ {name:'南亚文化：中世纪至近现代',start:551,end:2020,region:'南亚',lon:78.5,lat:24.5,detail:'这一观察项涵盖公元 6 世纪以后南亚多样的宗教、语言与文化，不对应单一政权。2020 年是本时间轴的终点，不是文化终点。',source:'https://artistproject.metmuseum.org/toah/ht/07/ssn.html'},
+ {name:'伊斯兰世界文化：13 世纪以后',start:1259,end:2020,region:'西亚',lon:43,lat:27,detail:'这一观察项用于继续呈现伊斯兰世界的多元文化与交流，范围远超其标注地点；2020 年只是时间轴终点。',source:'https://www.metmuseum.org/toah/hd/isla/hd_isla.htm'},
+ {name:'欧洲文化：中古时期',start:500,end:1499,region:'欧洲',lon:8,lat:48,detail:'欧洲中古社会包含多种语言、信仰与政治传统。这里只以西欧为一个观察点，不能代表整个欧洲。',source:'https://www.metmuseum.org/ja/toah/ht/06/euwc.html'},
+ {name:'欧洲文化：近现代观察',start:1500,end:2020,region:'欧洲',lon:8,lat:48,detail:'此观察项用于比较近现代欧洲不同地区的文化发展及与世界的联系，并不把欧洲视作单一文化。2020 年为时间轴终点。',source:'https://artistproject.metmuseum.org/toah/ht/08/euwc.html'}
+]);

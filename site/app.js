@@ -31,11 +31,8 @@ function selectEvent(e){selected=e;year=e.year;slider.value=year;render()}
 function showAtYear(y){year=Number(y);if(!selected?.isTrend || year<selected.start || year>selected.end)selected=null;render()}
 function render(){
  window.updateHistoricalMap?.(year);window.updateCivilizations?.(year);$('#mapYear').textContent=year<0?'前 '+Math.abs(year):year;$('#currentYear').textContent=yearText(year);$('#windowLabel').textContent=yearText(year)+' · '+(windowYears===0?'同一年':'前后 '+windowYears+' 年');
- const nearby=events.filter(e=>Math.abs(e.year-year)<=windowYears);if(selected?.isTrend)nearby.unshift(selected);const visibleImpacts=selected?(selected.isTrend?selected.impacts.filter(i=>i.from<=year):selected.impacts):[];markers.replaceChildren();paths.replaceChildren();
- // 对密集发生地进行轻微错位，保证每个光点都能单独选中。
- const placed=[];const coords=new Map();nearby.forEach(e=>{const [ox,oy]=pos(e.lon,e.lat);let point=[ox,oy];for(let i=0;i<500;i++){let angle=i*2.399963,rad=i===0?0:Math.sqrt(i)*10;let candidate=[ox+Math.cos(angle)*rad,oy+Math.sin(angle)*rad];if(candidate[0]>=12&&candidate[0]<=988&&candidate[1]>=12&&candidate[1]<=488&&placed.every(p=>Math.hypot(candidate[0]-p[0],candidate[1]-p[1])>=19)){point=candidate;break}}placed.push(point);coords.set(e,point)});
- if(selected){const [x,y]=coords.get(selected)||pos(selected.lon,selected.lat);visibleImpacts.forEach((impact,i)=>{let [tx,ty]=pos(impact.lon,impact.lat);if(Math.hypot(tx-x,ty-y)<45){tx+=i%2===0?38:-38;ty+=i%2===0?26:-26}let dx=tx-x,dy=ty-y;let midx=(x+tx)/2-dy*.12,midy=(y+ty)/2+dx*.12;svg('path',{d:`M ${x} ${y} Q ${midx} ${midy} ${tx} ${ty}`,class:'impact-line'},paths);svg('circle',{cx:tx,cy:ty,r:22,fill:'url(#halo)',class:'pulse'},paths);svg('circle',{cx:tx,cy:ty,r:4,fill:'#f3d58a',filter:'url(#glow)'},paths);let label=svg('text',{x:tx+8,y:ty-8,class:'impact-label'},paths);label.textContent=impact.place+' · '+(impact.when||yearText(impact.year))})}
- nearby.forEach(e=>{const [x,y]=coords.get(e),g=svg('g',{class:'marker'+(e===selected?' selected':''),tabindex:'0',role:'button','aria-label':`${e.isTrend?e.period:yearText(e.year)} ${e.title}`},markers);const radius=13+e.scope*3;svg('circle',{cx:x,cy:y,r:radius,fill:'url(#halo)',class:'pulse'},g);svg('circle',{cx:x,cy:y,r:8,fill:'transparent'},g);svg('circle',{cx:x,cy:y,r:3+e.scope/2,fill:e.importance===3?'#e7a343':e.importance===2?'#efc36e':'#f7df9d',class:'core',filter:'url(#glow)'},g);if(e===selected){const l=svg('text',{x:x+12,y:y+15,class:'marker-label'},g);l.textContent=e.title}g.addEventListener('click',()=>selectEvent(e));g.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectEvent(e)}})});
+ const nearby=events.filter(e=>Math.abs(e.year-year)<=windowYears);if(selected?.isTrend)nearby.unshift(selected);const visibleImpacts=selected?(selected.isTrend?selected.impacts.filter(i=>i.from<=year):selected.impacts):[];
+ renderMapMarkers();
  $('#eventCount').textContent=selected?.isTrend?'专题脉络':nearby.length?`${String(selected?nearby.indexOf(selected)+1:0).padStart(2,'0')} / ${String(nearby.length).padStart(2,'0')}`:'00 / 00';
  let d=$('#eventDetail');if(selected){d.innerHTML=`<div class="event-year ${selected.isTrend?'trend-year':''}">${selected.isTrend?selected.period:yearText(selected.year)}</div><div class="event-meta">${selected.place} · ${selected.isTrend?'历史趋势观察点':'历史事件'}</div><h3 class="event-title">${selected.title}</h3><p class="event-summary">${selected.summary}</p><span class="event-chip">${selected.tag}</span>${(selected.topicNote||studyNotes[selected.title])?`<details class="study-notes" ${(selected.topicNote||Object.values(topicTracks).some(t=>t.includes(selected.title)))?"open":""}><summary>复习笔记 <span>背景 · 过程 · 影响 · 考点</span></summary><div class="study-note-body">${[["背景",(selected.topicNote||studyNotes[selected.title]).background],["过程",(selected.topicNote||studyNotes[selected.title]).process],["影响",(selected.topicNote||studyNotes[selected.title]).impact],["答题提示",(selected.topicNote||studyNotes[selected.title]).focus]].map(([label,text])=>`<div><b>${label}</b><p>${text}</p></div>`).join("")}</div></details>`:""}<div class="divider"></div><div class="impact-title"><span>↗</span> ${selected.isTrend?'当前年份可见的地区联系':'事件的影响'}</div><ul class="impact-list">${visibleImpacts.map(i=>`<li><b>${i.place}</b><time>${i.when||yearText(i.year)}</time><p>${i.text}</p></li>`).join('')||'<li>这个年份暂无该趋势的地区示例；可在趋势范围内继续拖动时间轴。</li>'}</ul>`}else{d.innerHTML=`<div class="empty">${nearby.length?'这一时期有 '+nearby.length+' 个精选事件。选择一个事件，查看它的影响路径。':'这一时期暂未收录事件。可以继续拖动时间轴，或使用下方的快速定位。'}</div>`}
  if(selected?.isTrend){const related=document.createElement('div');related.className='trend-related';related.innerHTML='<div class="divider"></div><div class="impact-title">相关事件 · 点击查看具体事例</div><div class="related-links"></div><p class="trend-source">依据高中教材主题归纳，代表年份和观察范围为教学示意。<a target="_blank" rel="noopener">查看教材</a></p>';related.querySelector('a').href=selected.kind==='economy'?trendSourceEconomic:trendSourcePolitical;selected.related.forEach(title=>{const event=events.find(e=>e.title===title);if(event){const b=document.createElement('button');b.textContent=event.title;b.onclick=()=>selectEvent(event);related.querySelector('.related-links').appendChild(b)}});d.appendChild(related)}
@@ -43,6 +40,35 @@ function render(){
  document.querySelectorAll('.topic-node').forEach(b=>{const active=selected?.isTrend&&selected.title===b.dataset.title;const inPeriod=year>=Number(b.dataset.start)&&year<=Number(b.dataset.end);b.classList.toggle('selected',active);b.classList.toggle('in-period',inPeriod);b.setAttribute('aria-pressed',String(active));b.querySelector('.period-state').textContent=inPeriod?'当前年代 · 范围内':'观察阶段'});
  document.querySelectorAll('[data-era]').forEach(b=>b.classList.toggle('selected',Math.abs(year-Number(b.dataset.era))<30));
 }
+// Every displayed location is anchored to its own recorded longitude and latitude.
+// On small screens or at low zoom, nearby points share an interactive cluster;
+// zooming recomputes proximity in screen pixels rather than moving the coordinates.
+function renderMapMarkers(){
+ const nearby=events.filter(e=>Math.abs(e.year-year)<=windowYears);if(selected?.isTrend)nearby.unshift(selected);
+ const visibleImpacts=selected?(selected.isTrend?selected.impacts.filter(i=>i.from<=year):selected.impacts):[];
+ markers.replaceChildren();paths.replaceChildren();
+ if(selected){const [x,y]=pos(selected.lon,selected.lat);visibleImpacts.forEach(impact=>{
+  const [tx,ty]=pos(impact.lon,impact.lat);const dx=tx-x,dy=ty-y;
+  const d=Math.hypot(dx,dy)<0.01?`M ${x} ${y} C ${x+20} ${y-25}, ${x-20} ${y-25}, ${tx} ${ty}`:`M ${x} ${y} Q ${(x+tx)/2-dy*.12} ${(y+ty)/2+dx*.12} ${tx} ${ty}`;
+  svg('path',{d,class:'impact-line'},paths);svg('circle',{cx:tx,cy:ty,r:22,fill:'url(#halo)',class:'pulse'},paths);svg('circle',{cx:tx,cy:ty,r:4,fill:'#f3d58a',filter:'url(#glow)',class:'impact-core'},paths);
+  const label=svg('text',{x:tx+8,y:ty-8,class:'impact-label'},paths);label.textContent=impact.place+' · '+(impact.when||yearText(impact.year));
+ })}
+ const matrix=document.querySelector('#map').getScreenCTM();
+ const toScreen=(x,y)=>matrix?{x:matrix.a*x+matrix.c*y+matrix.e,y:matrix.b*x+matrix.d*y+matrix.f}:{x,y};
+ const groups=[];nearby.forEach(event=>{const [x,y]=pos(event.lon,event.lat),point=toScreen(x,y);let group=groups.find(g=>Math.hypot(point.x-g.point.x,point.y-g.point.y)<20);if(group)group.items.push(event);else groups.push({items:[event],point})});
+ groups.sort((a,b)=>Number(a.items.includes(selected))-Number(b.items.includes(selected)));
+ groups.forEach(group=>{const chosen=group.items.includes(selected)?selected:group.items[0], [x,y]=pos(chosen.lon,chosen.lat),count=group.items.length;
+  const label=count>1?`${count} 个地点接近的事件，点击选择`:`${chosen.isTrend?chosen.period:yearText(chosen.year)} ${chosen.title}`;
+  const g=svg('g',{class:'marker'+(group.items.includes(selected)?' selected':''),tabindex:'0',role:'button','aria-label':label,'data-event-title':chosen.title,'data-lon':chosen.lon,'data-lat':chosen.lat,'data-count':count},markers);
+  const radius=13+chosen.scope*3;svg('circle',{cx:x,cy:y,r:radius,fill:'url(#halo)',class:'pulse'},g);svg('circle',{cx:x,cy:y,r:8,fill:'transparent'},g);svg('circle',{cx:x,cy:y,r:3+chosen.scope/2,fill:chosen.importance===3?'#e7a343':chosen.importance===2?'#efc36e':'#f7df9d',class:'core',filter:'url(#glow)'},g);
+  if(count>1){const badge=svg('text',{x:x+9,y:y-8,class:'cluster-count'},g);badge.textContent=count}
+  if(group.items.includes(selected)){const t=svg('text',{x:x+12,y:y+15,class:'marker-label'},g);t.textContent=selected.title}
+  function choose(){if(count>1){openMarkerCluster(group.items);return}if(chosen.isTrend){selected=chosen;render()}else selectEvent(chosen)}
+  g.addEventListener('click',choose);g.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();choose()}});
+ });
+}
+function openMarkerCluster(items){const list=$('#markerClusterList');list.replaceChildren();items.slice().sort((a,b)=>a.year-b.year).forEach(event=>{const b=document.createElement('button');b.className='cluster-event';const date=document.createElement('time');date.textContent=event.isTrend?event.period:yearText(event.year);const title=document.createElement('strong');title.textContent=event.title;const place=document.createElement('span');place.textContent=event.place;b.append(date,title,place);b.onclick=()=>{$('#markerClusterDialog').close();if(event.isTrend){selected=event;render()}else selectEvent(event)};list.appendChild(b)});$('#markerClusterDialog').showModal()}
+$('.cluster-close').onclick=()=>$('#markerClusterDialog').close();
 $('#totalCount').textContent=events.length;events.forEach(e=>{let dot=document.createElement('i');dot.style.left=((e.year+3200)/5220*100)+'%';$('#timelineDots').appendChild(dot)});
 $('#windowSelect').addEventListener('change',e=>{windowYears=Number(e.target.value);render()});slider.addEventListener('input',e=>showAtYear(e.target.value));document.querySelectorAll('[data-era]').forEach(b=>b.onclick=()=>{let e=events.reduce((a,c)=>Math.abs(c.year-Number(b.dataset.era))<Math.abs(a.year-Number(b.dataset.era))?c:a);selectEvent(e)});
 function step(dir){let idx;if(selected&&!selected.isTrend)idx=events.indexOf(selected)+dir;else if(dir>0){idx=events.findIndex(e=>e.year>year);if(idx<0)idx=0}else{idx=events.length-1;while(idx>0&&events[idx].year>=year)idx--}selectEvent(events[(idx+events.length)%events.length])}
@@ -51,15 +77,21 @@ let panX=0,panY=0,drag=null,justDragged=false;
 const mapContent=$('#mapContent'),viewport=$('.map-viewport');
 function updateMap(){mapContent.style.transform=`translate(${panX}px, ${panY}px) scale(${scale})`}
 function clampPan(){const rect=viewport.getBoundingClientRect();const limitX=rect.width*(.34+(scale-1)*.5),limitY=rect.height*(.34+(scale-1)*.5);panX=Math.max(-limitX,Math.min(limitX,panX));panY=Math.max(-limitY,Math.min(limitY,panY))}
-function zoom(n){scale=Math.max(1,Math.min(2.5,scale+n));clampPan();updateMap()}
-$('#zoomIn').onclick=()=>zoom(.25);$('#zoomOut').onclick=()=>zoom(-.25);$('#zoomReset').onclick=()=>{scale=1;panX=0;panY=0;updateMap()};
+function zoom(n){
+ const next=Math.max(1,Math.min(8,scale+n));if(next===scale)return;
+ // Keep the selected geographic location under the same screen position while zooming.
+ if(selected){const [x,y]=pos(selected.lon,selected.lat),unit=Math.min(mapContent.clientWidth/1000,mapContent.clientHeight/500);panX+=(scale-next)*(x-500)*unit;panY+=(scale-next)*(y-250)*unit}
+ scale=next;clampPan();updateMap();renderMapMarkers();
+}
+$('#zoomIn').onclick=()=>zoom(scale<2?.25:scale<4?.5:1);$('#zoomOut').onclick=()=>zoom(scale<=2?-.25:scale<=4?-.5:-1);$('#zoomReset').onclick=()=>{scale=1;panX=0;panY=0;updateMap();renderMapMarkers()};
+mapContent.addEventListener('transitionend',e=>{if(e.propertyName==='transform')renderMapMarkers()});
 mapContent.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,startX:panX,startY:panY,moved:false};justDragged=false;});
 mapContent.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;let dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>5&&!drag.moved){drag.moved=true;mapContent.setPointerCapture(e.pointerId)}if(drag.moved){panX=drag.startX+dx;panY=drag.startY+dy;clampPan();updateMap();mapContent.classList.add('dragging')}});
 function finishDrag(e){if(!drag||e.pointerId!==drag.id)return;justDragged=drag.moved;drag=null;mapContent.classList.remove('dragging')}
 mapContent.addEventListener('pointerup',finishDrag);mapContent.addEventListener('pointercancel',finishDrag);
 mapContent.addEventListener('click',e=>{if(justDragged){e.stopPropagation();e.preventDefault();justDragged=false}},true);
 mapContent.addEventListener('keydown',e=>{if(e.target!==mapContent)return;let k={ArrowLeft:[-30,0],ArrowRight:[30,0],ArrowUp:[0,-30],ArrowDown:[0,30]}[e.key];if(k){e.preventDefault();panX+=k[0];panY+=k[1];clampPan();updateMap()}});
-window.addEventListener('resize',()=>{clampPan();updateMap()});
+window.addEventListener('resize',()=>{clampPan();updateMap();renderMapMarkers()});
 $('#help').onclick=()=>$('#helpDialog').showModal();$('.close').onclick=()=>$('#helpDialog').close();function updateCatalog(){const q=$('#catalogSearch').value.trim().toLowerCase();const found=events.filter(e=>[e.title,e.place,e.tag,e.summary,String(e.year)].some(v=>v.toLowerCase().includes(q)));$('#catalogCount').textContent=`找到 ${found.length} 个事件`;const list=$('#catalogList');list.replaceChildren();found.forEach(e=>{const b=document.createElement('button');b.className='catalog-event';b.innerHTML=`<time>${yearText(e.year)}</time><strong>${e.title}</strong><span>${e.place} · ${e.tag}</span>`;b.onclick=()=>{selectEvent(e);$('#catalogDialog').close();$('.map-panel').scrollIntoView({behavior:'smooth',block:'start'})};list.appendChild(b)})}
 $('#navList').onclick=$('#catalogTop').onclick=()=>{updateCatalog();$('#catalogDialog').showModal()};$('.catalog-close').onclick=()=>$('#catalogDialog').close();$('#catalogSearch').addEventListener('input',updateCatalog);
 $('#yearGo').onclick=()=>{const input=$('#yearInput');if(!input.value||!input.checkValidity()){input.reportValidity();return}const y=Number(input.value);slider.value=y;showAtYear(y)};$('#yearInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#yearGo').click()});$('#navExplore').onclick=()=>$('.map-panel').scrollIntoView({behavior:'smooth'});initLearning();render();
